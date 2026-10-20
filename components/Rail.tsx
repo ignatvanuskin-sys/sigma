@@ -16,26 +16,37 @@ const items = [
 export default function Rail() {
   const [active, setActive] = useState<string>("");
   const [onDark, setOnDark] = useState(false);
+  const [heroVisible, setHeroVisible] = useState(true);
 
   useEffect(() => {
+    if (!("IntersectionObserver" in window)) return;
+
+    const hero = document.querySelector(".hero");
+    const heroObserver = hero
+      ? new IntersectionObserver(([entry]) => setHeroVisible(entry.isIntersecting), {
+          threshold: 0.2,
+        })
+      : null;
+    if (hero && heroObserver) heroObserver.observe(hero);
+
     const sections = items
       .map((item) => document.getElementById(item.id))
       .filter((el): el is HTMLElement => Boolean(el));
-    if (!sections.length || !("IntersectionObserver" in window)) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setActive(entry.target.id);
-            setOnDark(Boolean(entry.target.closest(".section--dark, .lead-section, .hero")));
-          }
-        });
-      },
-      { rootMargin: "-45% 0px -50% 0px", threshold: 0 }
-    );
-
-    sections.forEach((section) => observer.observe(section));
+    const observer = sections.length
+      ? new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                setActive(entry.target.id);
+                setOnDark(Boolean(entry.target.closest(".section--dark, .lead-section, .hero")));
+              }
+            });
+          },
+          { rootMargin: "-45% 0px -50% 0px", threshold: 0 }
+        )
+      : null;
+    sections.forEach((section) => observer?.observe(section));
 
     const onScroll = () => {
       if (window.scrollY < 240) setActive("");
@@ -43,13 +54,17 @@ export default function Rail() {
     window.addEventListener("scroll", onScroll, { passive: true });
 
     return () => {
-      observer.disconnect();
+      heroObserver?.disconnect();
+      observer?.disconnect();
       window.removeEventListener("scroll", onScroll);
     };
   }, []);
 
   return (
-    <nav className={`rail${onDark ? " rail--on-dark" : ""}`} aria-label="Разделы страницы">
+    <nav
+      className={`rail${onDark ? " rail--on-dark" : ""}${heroVisible ? " is-hidden" : ""}`}
+      aria-label="Разделы страницы"
+    >
       {items.map((item) => (
         <a
           key={item.id}

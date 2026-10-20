@@ -5,30 +5,52 @@ import { IconWhatsapp } from "./Icons";
 import { site } from "@/lib/data";
 
 export default function StickyCta() {
-  const [hidden, setHidden] = useState(false);
+  const [heroVisible, setHeroVisible] = useState(false);
+  const [formVisible, setFormVisible] = useState(false);
+  const [noForm, setNoForm] = useState(false);
 
   useEffect(() => {
-    const target = document.getElementById("zapis");
-    if (!target) {
-      setHidden(true);
-      return;
-    }
     if (!("IntersectionObserver" in window)) return;
 
-    const observer = new IntersectionObserver(
-      ([entry]) => setHidden(entry.isIntersecting),
-      { rootMargin: "0px 0px -20% 0px", threshold: 0 }
-    );
-    observer.observe(target);
-    return () => observer.disconnect();
+    const hero = document.querySelector(".hero");
+    const form = document.getElementById("zapis");
+
+    if (!form) setNoForm(true);
+
+    const heroObserver = hero
+      ? new IntersectionObserver(([entry]) => setHeroVisible(entry.isIntersecting), {
+          threshold: 0.25,
+        })
+      : null;
+    heroObserver?.observe(hero as Element);
+
+    const formObserver = form
+      ? new IntersectionObserver(([entry]) => setFormVisible(entry.isIntersecting), {
+          rootMargin: "0px 0px -20% 0px",
+          threshold: 0,
+        })
+      : null;
+    formObserver?.observe(form as Element);
+
+    return () => {
+      heroObserver?.disconnect();
+      formObserver?.disconnect();
+    };
   }, []);
+
+  const hidden = noForm || heroVisible || formVisible;
 
   const scrollToForm = () => {
     document.getElementById("zapis")?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  if (noForm) return null;
+
   return (
-    <div className={`sticky-cta${hidden ? " is-hidden" : ""}`}>
+    <aside
+      aria-label="Быстрая запись"
+      className={`sticky-cta${hidden ? " is-hidden" : ""}`}
+    >
       <button type="button" className="btn btn--primary sticky-cta__main" onClick={scrollToForm}>
         Записаться на консультацию
       </button>
@@ -41,6 +63,6 @@ export default function StickyCta() {
       >
         <IconWhatsapp size={22} />
       </a>
-    </div>
+    </aside>
   );
 }
